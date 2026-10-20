@@ -5,8 +5,7 @@ app = Flask(__name__)
 
 # YOUR ULTRAMSG DETAILS
 INSTANCE_ID = "instance194905"
-TOKEN = "PASTE_YOUR_TOKEN_HERE"  # <--- PASTE YOUR TOKEN HERE
-
+TOKEN = "  #4micq16wz3a5yd8b" <--- PASTE YOUR TOKEN HERE
 def send_whatsapp(to, message):
     url = f"https://api.ultramsg.com/{INSTANCE_ID}/messages/chat"
     data = {
