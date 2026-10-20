@@ -1,2 +1,2 @@
 # shelby-tommy
-Tommy bot
+Tommy AI
