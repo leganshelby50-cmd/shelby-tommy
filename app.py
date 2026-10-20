@@ -1,69 +1,110 @@
-import os
+from flask import Flask, request
 import requests
-from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-ULTRAMSG_INSTANCE_ID = os.getenv("ULTRAMSG_INSTANCE_ID", "instance194905")
-ULTRAMSG_TOKEN = os.getenv("ULTRAMSG_TOKEN", "")
-ULTRAMSG_BASE = f"https://api.ultramsg.com/{ULTRAMSG_INSTANCE_ID}/messages/chat"
+# YOUR ULTRAMSG DETAILS
+INSTANCE_ID = "instance194905"
+TOKEN = "PASTE_YOUR_TOKEN_HERE"  # <--- PASTE YOUR TOKEN HERE
+
+def send_whatsapp(to, message):
+    url = f"https://api.ultramsg.com/{INSTANCE_ID}/messages/chat"
+    data = {
+        "token": TOKEN,
+        "to": to,
+        "body": message
+    }
+    requests.post(url, data=data)
 
 @app.route("/")
 def home():
     return "TOMMY UNIVERSAL BOT IS LIVE - Peaky Blinders"
 
-@app.route("/webhook", methods=["POST", "GET"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
-    if request.method == "GET":
-        return "Webhook OK - Send POST from UltraMsg"
+    data = request.json
+    if not data:
+        return "ok", 200
     
+    # Get message
     try:
-        data = request.json
-        print("Incoming:", data)
-        
-        # Get message details
         msg_data = data.get('data', {})
         from_number = msg_data.get('from', '')
-        message_body = msg_data.get('body', '')
-        is_from_me = msg_data.get('fromMe', False)
+        message = msg_data.get('body', '').lower()
         
-        # Ignore my own messages
-        if is_from_me:
-            return jsonify({"status": "ignored self"}), 200
+        if not from_number or not message:
+            return "ok", 200
+
+        print(f"Message from {from_number}: {message}")
+
+        # TOMMY REPLIES - HUMAN STYLE
+        if "hi" in message or "hello" in message or "mambo" in message:
+            reply = """Hello Client! 🧥 Tommy from Peaky Blinders here, Legan Enterprises.
+
+We have today:
+1️⃣ Menswear - Blazers, Coats, Suits
+2️⃣ Kids Clothes
+3️⃣ Shoes
+4️⃣ Order / Delivery
+
+What are you looking for, Client?"""
         
-        if not message_body or not from_number:
-            return jsonify({"status": "no message"}), 200
-            
-        # TOMMY REPLY
-        reply_text = f"""Hello Client! 🔥
-Tommy UNIVERSAL here from Peaky Blinders!
+        elif "1" in message or "blazer" in message or "coat" in message or "suit" in message:
+            reply = """Sharp choice, Client! 🔥 Menswear:
 
-You said: {message_body}
+- Peaky Blinders Coats - KSh 5,500
+- Official Blazers - KSh 4,500
+- Suits - KSh 7,000
+- Shirts - KSh 1,800
 
-👑 KING $HELBY SERVICES:
-1. Forex Signals
-2. Betting Tips
-3. Business Setup
-4. 24/7 Support
-
-How can I help you today?"""
-
-        # Send reply via UltraMsg API
-        payload = {
-            "token": ULTRAMSG_TOKEN,
-            "to": from_number,
-            "body": reply_text
-        }
+Send your size and location, Client. We deliver today in Thika/Nairobi."""
         
-        res = requests.post(ULTRAMSG_BASE, data=payload)
-        print("Reply sent:", res.text)
+        elif "2" in message or "kid" in message:
+            reply = """For the little Shelby! 👶 Kids:
+
+- Kids Suits - KSh 2,500
+- Kids Coats - KSh 2,000
+
+What age, Client?"""
         
-        return jsonify({"status": "replied"}), 200
+        elif "shoe" in message or "3" in message:
+            reply = """Shoes? 🔥
+
+- Formal Shoes - KSh 3,500
+- Boots - KSh 4,000
+- Sneakers - KSh 2,800
+
+What size, Client?"""
+        
+        elif "order" in message or "delivery" in message or "4" in message:
+            reply = """Ready to order, Client? 💼
+
+Just send:
+1. What you want + Size
+2. Your location
+3. Your other number
+
+We deliver in 2hrs in Thika, tomorrow Nairobi.
+
+Lipa na M-Pesa: 0714918723"""
+        
+        else:
+            reply = """Yes Client, I'm here! Tommy from Peaky Blinders.
+
+Reply with:
+1 - Menswear
+2 - Kids
+3 - Shoes
+4 - Order
+
+Or just tell me what you need, Client!"""
+
+        send_whatsapp(from_number, reply)
         
     except Exception as e:
-        print("Error:", str(e))
-        return jsonify({"error": str(e)}), 500
+        print(f"Error: {e}")
+    
+    return "ok", 200
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)
