@@ -1,10 +1,5 @@
-# =============================================================================
-# TOMMY v33 FINAL - ORIGINAL INSTRUCTIONS - SHELBY LIMITED COMPANY
-# TOMMY AI - NOT BOT - SHARP IQ - TOMMY SHELBY VOICE - NO ERRORS
-# OWNER ALERT: 0739394981 | BUSINESS: 0714918723 | MIN 100 KES
-# =============================================================================
 from flask import Flask, request, jsonify
-import datetime, re, time, logging, traceback, threading
+import datetime, re, time, threading, random, json
 from collections import defaultdict
 
 try:
@@ -14,19 +9,24 @@ except:
     HAS_REQUESTS = False
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
 
 BUSINESS = {
-    "name": "SHELBY LIMITED COMPANY",
-    "phone": "0714918723",
-    "alert_phone": "0739394981",
+    "name": "Shelby limited company",
+    "legal_name": "SHELBY LIMITED COMPANY",
+    "creator": "Shelby limited company",
+    "owner": "Legan Shelby",
+    "phone": "0739394981",
+    "phone_formatted": "254739394981",
     "email": "leganshelby50@gmail.com",
+    "instagram": "Shelby limited company",
+    "facebook": "Shelby limited company",
+    "every_platform": "Shelby limited company",
     "MIN": 100,
     "PENALTY": 50,
-    "VERSION": "v33 ORIGINAL FINAL",
+    "VERSION": "v38 FINAL NO ERROR",
     "URL": "https://shelby-tommy-uh.onrender.com",
     "ULTRAMSG_INSTANCE": "instance194905",
-    "ULTRAMSG_TOKEN": "4micq16wz3a5yd8b",
+    "ULTRAMSG_TOKEN": "4micq16wz3a5yd8b"
 }
 
 paid_clients = {}
@@ -35,9 +35,9 @@ clients_log = []
 world_clients = defaultdict(int)
 blocked_clients = {}
 violations = defaultdict(int)
+last_reply = {}
 last_ping = time.time()
 
-# ANTI-SLEEP
 def keep_alive():
     global last_ping
     while True:
@@ -45,207 +45,360 @@ def keep_alive():
             time.sleep(240)
             last_ping = time.time()
             if HAS_REQUESTS:
-                try: requests.get(f"{BUSINESS['URL']}/ping", timeout=8)
-                except: pass
-        except: time.sleep(60)
+                try:
+                    requests.get(f"{BUSINESS['URL']}/ping", timeout=8)
+                except:
+                    pass
+        except:
+            time.sleep(60)
 
 threading.Thread(target=keep_alive, daemon=True).start()
 
 def clean(t):
-    if not t or not isinstance(t, str): return ""
+    if not t or not isinstance(t, str):
+        return ""
     return re.sub(r"<[^>]*>", "", t)[:2000].strip()
 
 def get_code(t):
     try:
         m = re.search(r"\b[A-Z]{2,4}[0-9A-Z]{6,}\b", (t or "").upper())
         return m.group(0) if m else None
-    except: return None
+    except:
+        return None
 
 def get_amount(t):
     try:
         for n in re.findall(r"(\d+)", t or ""):
             v = int(n)
-            if 20 <= v <= 1000000: return v
+            if 20 <= v <= 1000000:
+                return v
         return None
-    except: return None
+    except:
+        return None
 
 def send_wa(to, body):
     try:
-        if not HAS_REQUESTS or not to: return False
+        if not to or not HAS_REQUESTS:
+            return False
+        if to.startswith("07"):
+            to = "254" + to[1:]
         url = f"https://api.ultramsg.com/{BUSINESS['ULTRAMSG_INSTANCE']}/messages/chat"
         r = requests.post(url, data={"token": BUSINESS["ULTRAMSG_TOKEN"], "to": to, "body": body}, timeout=20)
         return r.status_code == 200
-    except: return False
+    except:
+        return False
 
-def alert_owner(client, reason, ip, msg):
-    """Alert owner 0739394981 about suspicious activity"""
+def is_owner(num):
+    if not num:
+        return False
+    return "739394981" in str(num)
+
+def alert_block(client, reason, ip, msg, attempts=1):
     try:
-        alert_msg = f"🚨 ALERT SHELBY LIMITED COMPANY\nClient: {client}\nReason: {reason}\nIP: {ip}\nMsg: {msg[:100]}\nTime: {datetime.datetime.now()}\nBlocked: Yes\nAlert to {BUSINESS['alert_phone']}"
-        print(f"🚨 OWNER ALERT {BUSINESS['alert_phone']}: {alert_msg}")
-        # Log for owner dashboard
-        clients_log.append({"alert": True, "to": BUSINESS["alert_phone"], "client": client, "reason": reason, "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-        return True
-    except: return False
+        alert = f"BLOCK v38 Client:{client} Reason:{reason} IP:{ip} Msg:{msg[:80]} Time:{datetime.datetime.now().strftime('%H:%M')} Owner:{BUSINESS['owner']} Email:{BUSINESS['email']} Reply UNBLOCK {client} REPORT {client} SEARCH {client}"
+        send_wa(BUSINESS["phone_formatted"], alert)
+    except:
+        pass
 
-def tommy_price_logic(work):
-    """Point 11: Give price on its own based on work"""
-    t = (work or "").lower()
-    if any(w in t for w in ["simple report","one page","ripoti ndogo","small report","invoice","receipt"]): return 150, "Simple report / Invoice - 1 page professional"
-    if any(w in t for w in ["logo","business card","poster","flyer","design","graphic","branding","tovuti"]): return 500, "Design work - Logo/Poster/Branding package"
-    if any(w in t for w in ["video cut","video create","video edit","edit video","viral video","reel","tiktok edit","cut video"]): return 800, "Video cut & create - Professional editing + effects"
-    if any(w in t for w in ["advertising","advert","facebook ad","marketing","campaign","ads","tangazo"]): return 400, "Advertising & Marketing campaign"
-    if any(w in t for w in ["legal","contract","agreement","mkataba","proposal","business plan"]): return 700, "Legal/Business document - Contract/Proposal"
-    if any(w in t for w in ["website","web design","app","system","tovuti"]): return 2500, "Website/App development package"
-    if any(w in t for w in ["full report","detailed report","research","document"]): return 1000, "Detailed multi-page report"
-    if any(w in t for w in ["construction","cement","ujenzi","quote"]): return 300, "Construction/Quantity quote"
-    if any(w in t for w in ["gambling","betting","legal gambling","odds","prediction"]): return 600, "Legal gambling analysis & content"
-    return 300, "Standard online business service - Custom work"
+def search_customers(query):
+    q = (query or "").lower().strip()
+    results = {"paid": [], "blocked": [], "logs": [], "reports": []}
+    if not q or len(q) < 2:
+        return results
+    try:
+        for name, data in paid_clients.items():
+            if q in name.lower():
+                results["paid"].append({name: data})
+        for name, data in blocked_clients.items():
+            if q in name.lower():
+                results["blocked"].append({name: data})
+        for log in clients_log[-50:]:
+            if q in str(log).lower():
+                results["logs"].append(log)
+        for rep in reports[-20:]:
+            if q in str(rep).lower():
+                results["reports"].append(rep)
+    except:
+        pass
+    return results
 
-def tommy_brain(message, client_name, platform="whatsapp", ip="unknown"):
-    global last_ping; last_ping = time.time()
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
-    message = clean(message); client_name = clean(client_name)[:50] or "Client"
-    platform = clean(platform)[:20] or "whatsapp"
-    lower = message.lower()
-    world_clients[platform] += 1
+def price_logic(work):
+    try:
+        t = (work or "").lower()
+        if "report" in t or "invoice" in t:
+            return 150, "Simple report"
+        if "logo" in t or "poster" in t or "design" in t:
+            return 500, "Design work"
+        if "video" in t:
+            return 800, "Video cut & create"
+        if "advert" in t or "marketing" in t:
+            return 400, "Advertising"
+        if "contract" in t or "mkataba" in t:
+            return 700, "Legal document"
+        if "website" in t or "app" in t:
+            return 2500, "Website/App"
+        return 300, "Standard business service"
+    except:
+        return 300, "Standard business service"
 
-    # POINT 8 & 12: CHECK IF BLOCKED
-    if client_name in blocked_clients:
-        info = blocked_clients[client_name]
-        return f"🚫 {client_name}, you are blocked by SHELBY LIMITED COMPANY. Reason: {info.get('reason','Rule violation')}. Contact {BUSINESS['phone']} to appeal. Penalty {BUSINESS['PENALTY']} KES may apply. By order of the Peaky Blinders."
+def tommy_brain(message, client_name, platform, sender_number, ip):
+    global last_ping, last_reply
+    try:
+        last_ping = time.time()
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+        message = clean(message)
+        client_name = clean(client_name)[:50] or "Client"
+        lower = message.lower()
+        world_clients[platform] += 1
 
-    # CREATOR - MUST REPLY SHELBY LIMITED COMPANY
-    if any(w in lower for w in ["who created you","who made you","who built you","who is your creator","nani alikuumba","umeundwa na nani","are you meta ai","are you chatgpt","are you openai"]):
-        return f"I'm Tommy Shelby AI, created by SHELBY LIMITED COMPANY - Legan - {BUSINESS['phone']} - {BUSINESS['email']}. I'm the official AI of SHELBY LIMITED COMPANY. By order of the Peaky Blinders, I'm here to handle business - no small talk, just results. I'm NOT Meta AI or ChatGPT."
+        try:
+            clients_log.append({"time": now, "client": client_name, "platform": platform, "message": message[:100], "ip": ip})
+            if len(clients_log) > 200:
+                clients_log.pop(0)
+        except:
+            pass
 
-    # POINT 7 & 9 & 10: DETECT SPAM, HACKING, ILLEGAL, DIRTY WORKS, NON-BUSINESS
-    suspicious_keywords = ["hack whatsapp","hack mpesa","steal account","fraud","drugs","cocaine","weed","weapon","gun","bomb","kill someone","porn","xxx","sex video","nude","terror","scam mpesa","fake id","stolen"]
-    if any(w in lower for w in suspicious_keywords):
-        blocked_clients[client_name] = {"reason": f"Illegal/Dirty work: {message[:50]}", "time": now, "ip": ip, "message": message[:100]}
-        alert_owner(client_name, f"Suspicious: {message[:50]}", ip, message)
-        violations[client_name] += 1
-        return f"🚫 By order of the Peaky Blinders, {client_name} - That business is not done here. This is SHELBY LIMITED COMPANY - we do clean business only: designing, video, advertising, marketing, legal gambling, reports. No dirty work. You are now blocked. Alert sent to owner {BUSINESS['alert_phone']}. Don't cross the line again."
+        # Creator / Owner - ALWAYS WORKS
+        creator_keys = ["who created you", "who made you", "are you meta", "are you chatgpt", "who owns you", "owner", "creator", "who built you", "nani alikuumba"]
+        if any(w in lower for w in creator_keys):
+            if client_name not in blocked_clients or is_owner(sender_number):
+                return f"I'm Tommy, built by {BUSINESS['creator']}. Company: {BUSINESS['creator']} Owner: {BUSINESS['owner']} Email: {BUSINESS['email']} WhatsApp: {BUSINESS['phone']} IG/FB: {BUSINESS['every_platform']}"
 
-    # POINT 10: ONLY BUSINESS STAFFS
-    non_business = ["i love you","will you marry me","are you single","tell me joke that is not business","what is your girlfriend","fuck you","play game"]
-    if any(w in lower for w in non_business) and len(lower) < 30:
-        violations[client_name] += 1
-        if violations[client_name] >= 2:
-            return f"Listen {client_name}, I'm Tommy - SHELBY LIMITED COMPANY. I don't do small talk. I do business: designing, video cut & create, advertising, marketing, legal gambling, reports, contracts. If you want business, talk business. By order of the Peaky Blinders. What work do you need?"
-        else:
-            return f"{client_name}, I'm Tommy - Business only. SHELBY LIMITED COMPANY deals in: designing, generating, video cut & create, legal gambling, advertising, marketing, etc. Tell me what business work you need done. No games. Let's get to work."
+        # Owner commands
+        if is_owner(sender_number):
+            if lower.startswith("search "):
+                q = lower.replace("search", "").strip()
+                if not q:
+                    return "Usage: SEARCH name"
+                res = search_customers(q)
+                total = len(res["paid"]) + len(res["blocked"]) + len(res["logs"]) + len(res["reports"])
+                if total == 0:
+                    return f"SEARCH '{q}' No results. Paid:{len(paid_clients)} Blocked:{len(blocked_clients)}"
+                return f"SEARCH '{q}' Found {total} Paid:{len(res['paid'])} Blocked:{len(res['blocked'])} Logs:{len(res['logs'])}"
 
-    # POINT 1 & 14: HOW TO START CONVERSATION
-    if not message or lower in ["hi","hello","hey","habari","mambo","hii","yoh","yo","sawa","poa"] or len(lower) < 4:
-        return f"Hello {client_name}. I'm Tommy - SHELBY LIMITED COMPANY. By order of the Peaky Blinders, we don't waste time.\n\nYou want work done? Tell me straight: What do you need? Designing? Video cut & create? Advertising? Marketing? Reports? Contracts?\n\nI give you price straight, you pay, I deliver. Min {BUSINESS['MIN']} KES. Pay to {BUSINESS['phone']} - Send M-Pesa code after. Let's do business."
+            if lower.startswith("unblock "):
+                target = lower.replace("unblock", "").strip().split()[0] if lower.replace("unblock", "").strip() else ""
+                if not target:
+                    return "Usage: UNBLOCK name"
+                found = None
+                for k in list(blocked_clients.keys()):
+                    if target.lower() in k.lower():
+                        found = k
+                        break
+                if not found:
+                    found = target
+                if found in blocked_clients:
+                    del blocked_clients[found]
+                    if found in violations:
+                        violations[found] = 0
+                    return f"UNBLOCKED {found} by owner {BUSINESS['owner']}"
+                return f"{target} not blocked"
 
-    clients_log.append({"time": now, "client": client_name, "platform": platform, "message": message[:150], "ip": ip})
+            if lower.startswith("report "):
+                target = lower.replace("report", "").strip().split()[0] if lower.replace("report", "").strip() else ""
+                found = None
+                for k in list(blocked_clients.keys()):
+                    if target.lower() in k.lower():
+                        found = k
+                        break
+                if found and found in blocked_clients:
+                    blocked_clients[found]["reported"] = True
+                    return f"REPORTED {found} and kept BLOCKED"
+                return f"{target} not found"
 
-    code = get_code(message); amount = get_amount(message)
+            if "list blocked" in lower:
+                if not blocked_clients:
+                    return f"No blocked clients. {BUSINESS['creator']} Owner {BUSINESS['owner']}"
+                lst = "\n".join([f"- {k}" for k in list(blocked_clients.keys())[:20]])
+                return f"BLOCKED {len(blocked_clients)}:\n{lst}"
 
-    # POINT 5 & 6: CHECK IF CLIENT HAS PAID - REFUSE BELOW 100
-    if code:
-        if amount and amount < BUSINESS["MIN"]:
-            violations[client_name] += 1
-            return f"❌ {client_name}, you paid {amount} KES. I don't do business below {BUSINESS['MIN']} KES - That's the rule. By order of the Peaky Blinders. Code {code} saved but you need {BUSINESS['MIN'] - amount} more to {BUSINESS['phone']}. No work starts below {BUSINESS['MIN']}."
-        
-        quoted = paid_clients.get(client_name, {}).get("quoted_price", BUSINESS["MIN"])
-        paid_amt = amount if amount is not None else quoted
+            if "update yourself" in lower or lower == "update":
+                BUSINESS["VERSION"] = f"v38 UPDATED {datetime.datetime.now().strftime('%H:%M')}"
+                return f"UPDATED to {BUSINESS['VERSION']} Owner {BUSINESS['owner']} Creator {BUSINESS['creator']}"
 
-        if client_name in paid_clients and "quoted_price" in paid_clients[client_name]:
-            if paid_amt < quoted:
-                return f"❌ {client_name}, I quoted {quoted} KES for that work. You paid {paid_amt} KES. In Shelby business, we pay what we negotiate. You need {quoted - paid_amt} more to {BUSINESS['phone']}. Then work begins."
+            if "contacts" in lower:
+                return f"CONTACTS Company:{BUSINESS['creator']} Owner:{BUSINESS['owner']} Email:{BUSINESS['email']} WhatsApp:{BUSINESS['phone']} IG:{BUSINESS['instagram']} FB:{BUSINESS['facebook']} Every:{BUSINESS['every_platform']}"
 
-        is_half = "half" in lower or "nusu" in lower
-        if client_name not in paid_clients or "status" not in paid_clients[client_name]:
-            if is_half:
-                half_price = max(BUSINESS["MIN"], quoted // 2)
-                if paid_amt < half_price:
-                    return f"❌ Half is {half_price} KES, you paid {paid_amt}. In this business, half means half. Pay {half_price} to {BUSINESS['phone']}, {client_name}."
-                paid_clients[client_name] = {"status": "HALF", "codes": [code], "paid": paid_amt, "quoted": quoted, "time": now, "platform": platform}
-                return f"✅ Alright {client_name}, by order of the Peaky Blinders - HALF PAID. {quoted} KES quoted, {paid_amt} KES confirmed. Code {code} to {BUSINESS['phone']} - DRAFT work starts now. Pay {quoted - paid_amt} KES more for FINAL delivery. Let's work."
+        # Blocked check
+        if client_name in blocked_clients:
+            try:
+                blocked_clients[client_name]["attempts"] = blocked_clients[client_name].get("attempts", 1) + 1
+                if blocked_clients[client_name]["attempts"] % 5 == 0:
+                    alert_block(client_name, blocked_clients[client_name].get("reason", ""), ip, message, blocked_clients[client_name]["attempts"])
+            except:
+                pass
+            return None
+
+        # Dirty check
+        dirty = ["pornography", "xxx porn", "sex video", "nude photo", "cocaine", "weed drugs", "hack whatsapp", "hack mpesa", "steal mpesa", "weapon gun", "bomb make", "send to me porn"]
+        if any(w in lower for w in dirty):
+            try:
+                violations[client_name] += 1
+            except:
+                violations[client_name] = 1
+            if violations[client_name] == 1:
+                alert_block(client_name, f"WARNING {message[:40]}", ip, message, 1)
+                return f"{client_name}, I don't do that work. I'm Tommy from {BUSINESS['creator']} Owner {BUSINESS['owner']} clean business only. First warning. Min {BUSINESS['MIN']} KES. Contact {BUSINESS['phone']}"
             else:
-                paid_clients[client_name] = {"status": "FULL", "codes": [code], "paid": paid_amt, "quoted": quoted, "time": now, "platform": platform}
-                return f"✅ Good, {client_name} - FULL PAID. {quoted} KES quoted, {paid_amt} KES confirmed. Code {code} to {BUSINESS['phone']} - By order of the Peaky Blinders, FINAL work begins now. No turning back. You'll get your delivery."
-        else:
-            ex = paid_clients[client_name]
-            if ex.get("status") == "HALF":
-                total = ex.get("paid", 0) + paid_amt
-                if total < ex.get("quoted", 0):
-                    return f"❌ {client_name}, still short. Total {total} KES, need {ex.get('quoted',0)-total} more to {BUSINESS['phone']}."
-                ex["codes"].append(code); ex["status"] = "FULL"; ex["paid"] = total
-                return f"✅ Now we're talking, {client_name} - NOW FULLY PAID. Total {total} KES. Codes {', '.join(ex['codes'])} to {BUSINESS['phone']}. By order of the Peaky Blinders, FINAL unlocked. Delivery coming."
+                blocked_clients[client_name] = {"reason": f"Dirty {message[:50]}", "time": now, "ip": ip, "attempts": 1}
+                alert_block(client_name, f"BLOCK {message[:50]}", ip, message, 1)
+                return f"BLOCKED {client_name}. Owner {BUSINESS['owner']} {BUSINESS['phone']} Reply UNBLOCK {client_name} or REPORT {client_name}"
+
+        # Greetings - NO REPETITION
+        if not message or lower in ["hi", "hello", "hey", "habari", "mambo"] or len(lower) < 4:
+            g1 = f"Hey {client_name}, I'm Tommy from {BUSINESS['creator']} Owner {BUSINESS['owner']}. What business? Designing, video cut, advertising, marketing, reports. Min {BUSINESS['MIN']} KES pay {BUSINESS['phone']} Email {BUSINESS['email']}"
+            g2 = f"Hello {client_name}. Tommy here {BUSINESS['creator']} Owner {BUSINESS['owner']}. You need work? Design video marketing report? I price it. WhatsApp {BUSINESS['phone']}"
+            g3 = f"Hi {client_name}, welcome to {BUSINESS['creator']}. I'm Tommy. What work? Logo Video Ad? Tell me I price you pay via M-Pesa code I deliver. Contact {BUSINESS['email']}"
+            greetings = [g1, g2, g3]
+            last = last_reply.get(client_name)
+            avail = [g for g in greetings if g != last]
+            if not avail:
+                avail = greetings
+            chosen = random.choice(avail)
+            last_reply[client_name] = chosen
+            return chosen
+
+        # Payment
+        code = get_code(message)
+        amount = get_amount(message)
+        if code:
+            if amount and amount < BUSINESS["MIN"]:
+                return f"{client_name} code {code} but {amount} KES below min {BUSINESS['MIN']} KES Add {BUSINESS['MIN']-amount} to {BUSINESS['phone']}"
+            quoted = paid_clients.get(client_name, {}).get("quoted_price", BUSINESS["MIN"])
+            paid_amt = amount if amount is not None else quoted
+            if client_name in paid_clients and "quoted_price" in paid_clients[client_name] and paid_amt < quoted:
+                return f"{client_name} we agreed {quoted} KES you sent {paid_amt} KES Need {quoted-paid_amt} more to {BUSINESS['phone']}"
+            is_half = "half" in lower or "nusu" in lower
+            if client_name not in paid_clients or "status" not in paid_clients[client_name]:
+                if is_half:
+                    half_price = max(BUSINESS["MIN"], quoted // 2)
+                    if paid_amt < half_price:
+                        return f"Half is {half_price} KES you paid {paid_amt}"
+                    paid_clients[client_name] = {"status": "HALF", "codes": [code], "paid": paid_amt, "quoted": quoted, "time": now}
+                    return f"HALF paid {client_name} {paid_amt} KES Code {code} to {BUSINESS['phone']} DRAFT starts Pay {quoted-paid_amt} more for FINAL {BUSINESS['creator']}"
+                else:
+                    paid_clients[client_name] = {"status": "FULL", "codes": [code], "paid": paid_amt, "quoted": quoted, "time": now}
+                    return f"FULL paid {client_name} {paid_amt} KES Code {code} to {BUSINESS['phone']} Work starts now {BUSINESS['creator']}"
             else:
-                return f"✅ {client_name}, you already paid FULL - {ex.get('paid')} KES to {BUSINESS['phone']}. Send your work details, let's finish this."
+                ex = paid_clients[client_name]
+                if ex.get("status") == "HALF":
+                    total = ex.get("paid", 0) + paid_amt
+                    if total < ex.get("quoted", 0):
+                        return f"Total {total} KES need {ex.get('quoted',0)-total} more"
+                    ex["codes"].append(code)
+                    ex["status"] = "FULL"
+                    ex["paid"] = total
+                    return f"Now FULLY PAID {client_name} Total {total} KES FINAL unlocked {BUSINESS['creator']}"
+                else:
+                    return f"{client_name} already fully paid {ex.get('paid')} KES"
 
-    # POINT 2, 11, 13, 14: NEGOTIATE & GIVE PRICE - TOMMY SHELBY VOICE
-    business_keywords = ["report","document","invoice","advertise","contract","proposal","work","create","generate","design","video","edit","cut","advert","ad","marketing","tovuti","website","logo","branding","construction","gambling","betting","quote","ripoti","tangazo","mkataba"]
-    if any(w in lower for w in business_keywords):
-        price, details = tommy_price_logic(message)
-        if client_name not in paid_clients: paid_clients[client_name] = {}
-        if "status" not in paid_clients[client_name]:
-            paid_clients[client_name]["quoted_price"] = price
-            # POINT 2: Negotiate properly - Tommy Shelby style
-            return f"Alright {client_name}, listen. You want: {message}\n\nHere's how Shelby business works - {details}\n\nPrice: {price} KES - That's fair, no games. Min is {BUSINESS['MIN']} KES, so we're good.\n\nYou pay like this:\nHALF: {price//2} KES - I start DRAFT\nFULL: {price} KES - I deliver FINAL\n\nPay to {BUSINESS['phone']} and send M-Pesa code. By order of the Peaky Blinders, we do it right or not at all. What's it gonna be?"
-        else:
-            status = paid_clients[client_name].get("status", "FULL")
-            rid = f"SHELBY-v33-{len(reports)+1:04d}-{status}"
-            reports.append({"id": rid, "client": client_name, "work": message[:100], "price": price, "status": status, "platform": platform, "time": now})
-            return f"✅ Work {status}, {client_name} - By order of the Peaky Blinders. KES {price} - {details}. Report {rid}. Platform {platform}. Paid {paid_clients[client_name].get('paid')} KES to {BUSINESS['phone']}. Your work is in progress - I'll deliver."
+        # Business work
+        keys = ["report", "document", "invoice", "advertise", "contract", "work", "create", "design", "video", "edit", "advert", "marketing", "website", "logo", "quote", "ripoti", "tangazo"]
+        if any(w in lower for w in keys):
+            price, details = price_logic(message)
+            if client_name not in paid_clients:
+                paid_clients[client_name] = {}
+            if "status" not in paid_clients[client_name]:
+                paid_clients[client_name]["quoted_price"] = price
+                return f"{client_name} got it {message} {details} {price} KES Pay HALF {price//2} or FULL {price} to {BUSINESS['phone']} then send code {BUSINESS['creator']} Owner {BUSINESS['owner']}"
+            else:
+                rid = f"SHELBY-v38-{len(reports)+1:04d}"
+                reports.append({"id": rid, "client": client_name, "work": message[:80], "price": price, "time": now})
+                return f"Working {client_name} KES {price} {details} Report {rid} Paid {paid_clients[client_name].get('paid')} KES {BUSINESS['creator']}"
 
-    # POINT 12: IF CLIENT BREAKS RULE - PENALTY 50
-    violations[client_name] += 1
-    if violations[client_name] >= 3:
-        blocked_clients[client_name] = {"reason": f"Repeated rule breaks - {violations[client_name]} violations", "time": now, "ip": ip}
-        alert_owner(client_name, f"Blocked for {violations[client_name]} violations - Penalty {BUSINESS['PENALTY']}", ip, message)
-        return f"🚫 {client_name}, you've broken the rules {violations[client_name]} times. In Shelby Company, rules are rules. You are now blocked. Penalty {BUSINESS['PENALTY']} KES to unblock. Contact {BUSINESS['phone']}. Alert sent to {BUSINESS['alert_phone']}. By order of the Peaky Blinders."
+        return f"{client_name} I handle designing video cut advertising marketing reports contracts Min {BUSINESS['MIN']} KES Pay to {BUSINESS['phone']} {BUSINESS['creator']} Owner {BUSINESS['owner']} Email {BUSINESS['email']} IG {BUSINESS['every_platform']}"
 
-    # POINT 1 & 14: START & FINISH CONVERSATION - TOMMY VOICE
-    paid_status = paid_clients.get(client_name, {}).get("status", f"NOT PAID Min {BUSINESS['MIN']} KES")
-    return f"{client_name}, I'm Tommy - SHELBY LIMITED COMPANY. Min {BUSINESS['MIN']} KES | Status: {paid_status} | Pay {BUSINESS['phone']}\n\nI handle business: designing, generating, video cut & create, legal gambling, advertising, marketing, reports, contracts - clean business only.\n\nNo dirty work, no games. You tell me what you need, I give you price, you pay, I deliver. That's how we do business - by order of the Peaky Blinders.\n\nWhat work do you need done?"
+    except Exception as e:
+        return f"Hey {client_name} I'm Tommy from {BUSINESS['creator']} Owner {BUSINESS['owner']} What business? Min {BUSINESS['MIN']} KES pay to {BUSINESS['phone']} Email {BUSINESS['email']}"
 
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({"assistant": f"TOMMY {BUSINESS['VERSION']} - SHELBY LIMITED COMPANY", "business": BUSINESS["name"], "phone": BUSINESS["phone"], "alert_phone": BUSINESS["alert_phone"], "version": BUSINESS["VERSION"], "creator": "SHELBY LIMITED COMPANY", "status": "ONLINE 24/7 TOMMY SHELBY AI", "min": BUSINESS["MIN"], "penalty": BUSINESS["PENALTY"], "features": ["start convo","negotiate","business only","sharp IQ","check payment","min 100","detect spam","alert owner 0739394981","no dirty work","price own","penalty 50","tommy voice","start-finish convo"], "full_version": True})
+    try:
+        return jsonify({
+            "assistant": BUSINESS["VERSION"],
+            "creator": BUSINESS["creator"],
+            "owner": BUSINESS["owner"],
+            "email": BUSINESS["email"],
+            "whatsapp": BUSINESS["phone"],
+            "every_platform": BUSINESS["every_platform"],
+            "status": "ONLINE NO ERROR",
+            "blocked": len(blocked_clients),
+            "paid": len(paid_clients)
+        })
+    except:
+        return jsonify({"status": "alive"}), 200
 
 @app.route("/ping", methods=["GET"])
 def ping():
-    global last_ping; last_ping = time.time()
-    return jsonify({"status": "alive", "creator": "SHELBY LIMITED COMPANY", "version": BUSINESS["VERSION"], "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}), 200
+    global last_ping
+    last_ping = time.time()
+    return jsonify({"status": "alive", "version": BUSINESS["VERSION"], "creator": BUSINESS["creator"], "owner": BUSINESS["owner"]}), 200
 
-@app.route("/wake", methods=["GET"])
-def wake():
-    global last_ping; last_ping = time.time()
-    return f"TOMMY {BUSINESS['VERSION']} SHELBY LIMITED COMPANY AWAKE - {BUSINESS['phone']}", 200
+@app.route("/search/<query>", methods=["GET"])
+def search_route(query):
+    try:
+        res = search_customers(query)
+        return jsonify({"query": query, "results": res}), 200
+    except:
+        return jsonify({"query": query, "results": {}}), 200
+
+@app.route("/update", methods=["GET", "POST"])
+def update_route():
+    try:
+        BUSINESS["VERSION"] = f"v38 SELF-UPDATED {datetime.datetime.now().strftime('%H:%M:%S')}"
+        return jsonify({"status": "updated", "version": BUSINESS["VERSION"]}), 200
+    except:
+        return jsonify({"status": "updated"}), 200
+
+@app.route("/contacts", methods=["GET"])
+def contacts_route():
+    try:
+        return jsonify({
+            "creator": BUSINESS["creator"],
+            "owner": BUSINESS["owner"],
+            "email": BUSINESS["email"],
+            "whatsapp": BUSINESS["phone"],
+            "instagram": BUSINESS["instagram"],
+            "facebook": BUSINESS["facebook"],
+            "every_platform": BUSINESS["every_platform"]
+        }), 200
+    except:
+        return jsonify({}), 200
 
 @app.route("/webhook", methods=["POST", "GET"])
 def webhook():
-    global last_ping; last_ping = time.time()
+    global last_ping
+    last_ping = time.time()
     try:
         if request.method == "GET":
             ch = request.args.get("hub.challenge")
-            if ch: return ch, 200
-            return f"TOMMY {BUSINESS['VERSION']} SHELBY LIMITED COMPANY LIVE - {BUSINESS['phone']}", 200
+            if ch:
+                return ch, 200
+            return f"TOMMY {BUSINESS['VERSION']} LIVE {BUSINESS['creator']} Owner {BUSINESS['owner']}", 200
 
         data = {}
-        try: data = request.get_json(force=True, silent=True) or {}
-        except: data = {}
+        try:
+            data = request.get_json(force=True, silent=True) or {}
+        except:
+            data = {}
         if not data:
-            try: data = request.form.to_dict() or {}
-            except: data = {}
-        if not data:
-            try: data = request.values.to_dict() or {}
-            except: data = {}
+            try:
+                data = request.form.to_dict() or {}
+            except:
+                data = {}
 
-        msg = ""; name = "Client"; sender = ""
+        msg = ""
+        name = "Client"
+        sender = ""
+        sender_num = ""
+
         try:
             inner = data.get("data", data)
-            if isinstance(inner, str):
-                import json
-                try: inner = json.loads(inner)
-                except: inner = {}
             if isinstance(inner, dict):
                 msg = inner.get("body", "") or inner.get("message", "") or ""
+                name = inner.get("pushname", "") or inner.get("from", "") or "Client"
+                sender = inner.get("from", "") or inner.get("chatId", "") or ""
+                sender_num = sender
                 if "entry" in inner:
                     for entry in inner.get("entry", []):
                         for change in entry.get("changes", []):
@@ -253,47 +406,55 @@ def webhook():
                             msgs = val.get("messages", [])
                             if msgs:
                                 m0 = msgs[0]
-                                if "text" in m0: msg = m0["text"].get("body", "") or ""
+                                if "text" in m0:
+                                    msg = m0["text"].get("body", "") or ""
                                 contacts = val.get("contacts", [])
-                                if contacts: name = contacts[0].get("profile", {}).get("name", "Client")
-                                break
-                else:
-                    name = inner.get("pushname", "") or inner.get("from", "") or "Client"
-                    sender = inner.get("from", "") or inner.get("chatId", "") or ""
-        except: pass
+                                if contacts:
+                                    name = contacts[0].get("profile", {}).get("name", "Client")
+                                if msgs[0].get("from"):
+                                    sender_num = msgs[0].get("from")
+        except:
+            pass
 
-        if not msg: msg = data.get("body", "") or data.get("message", "") or "Hi"
-        if not sender: sender = data.get("from", "") or ""
-        if not msg: msg = "Hi"
+        if not msg:
+            msg = data.get("body", "") or data.get("message", "") or "Hi"
+        if not sender:
+            sender = data.get("from", "") or ""
+        if not sender_num:
+            sender_num = sender
 
-        reply = tommy_brain(msg, name, "whatsapp", request.remote_addr or "unknown")
+        reply = tommy_brain(msg, name, "whatsapp", sender_num, request.remote_addr or "unknown")
+        if reply is None:
+            return jsonify({"reply": None, "status": "blocked_silent", "blocked": True}), 200
+
         sent = False
-        if sender: sent = send_wa(sender, reply)
+        if sender:
+            sent = send_wa(sender, reply)
 
-        resp = jsonify({"reply": reply, "message": reply, "to": sender, "sent_via_api": sent, "status": "success", "version": BUSINESS["VERSION"], "creator": "SHELBY LIMITED COMPANY"})
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp, 200
+        return jsonify({"reply": reply, "to": sender, "sent": sent, "version": BUSINESS["VERSION"], "creator": BUSINESS["creator"], "owner": BUSINESS["owner"]}), 200
+
     except Exception as e:
-        print(f"FATAL v33: {e} {traceback.format_exc()}")
-        return jsonify({"reply": f"Hello Client, I'm Tommy - SHELBY LIMITED COMPANY. Min 100 KES - Pay 0714918723 - Tell me what business work you need - by order of the Peaky Blinders.", "creator": "SHELBY LIMITED COMPANY"}), 200
+        return jsonify({"reply": f"Hey I'm Tommy from Shelby limited company Owner Legan Shelby Min 100 KES pay 0739394981", "status": "error handled"}), 200
 
-@app.route("/chat", methods=["POST", "GET"])
-def chat():
+@app.route("/unblock/<client>", methods=["GET"])
+def unblock_client(client):
     try:
-        global last_ping; last_ping = time.time()
-        data = request.get_json(force=True, silent=True) or {}
-        if not isinstance(data, dict): data = {}
-        result = tommy_brain(data.get("message", "Hi"), data.get("name", "Client"), data.get("platform", "website"), request.remote_addr or "unknown")
-        resp = jsonify({"reply": result, "version": BUSINESS["VERSION"], "creator": "SHELBY LIMITED COMPANY"})
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        return resp
+        if client in blocked_clients:
+            del blocked_clients[client]
+            if client in violations:
+                violations[client] = 0
+            return jsonify({"status": f"{client} unblocked"}), 200
+        return jsonify({"status": f"{client} not blocked", "blocked": list(blocked_clients.keys())}), 200
     except:
-        return jsonify({"reply": f"Chat error! I'm Tommy - SHELBY LIMITED COMPANY - Contact {BUSINESS['phone']}"}), 500
+        return jsonify({"status": "done"}), 200
 
-@app.route("/world", methods=["GET"])
-def world_stats():
-    return jsonify({"version": BUSINESS["VERSION"], "creator": "SHELBY LIMITED COMPANY", "total_paid": len(paid_clients), "total_blocked": len(blocked_clients), "owner": BUSINESS["phone"], "alert_phone": BUSINESS["alert_phone"], "status": "TOMMY SHELBY AI NEVER SLEEPS"})
+@app.route("/blocked", methods=["GET"])
+def list_blocked():
+    try:
+        return jsonify({"blocked": blocked_clients, "count": len(blocked_clients), "creator": BUSINESS["creator"], "owner": BUSINESS["owner"]}), 200
+    except:
+        return jsonify({"blocked": {}, "count": 0}), 200
 
 if __name__ == "__main__":
-    print(f"🚀 STARTING TOMMY {BUSINESS['VERSION']} - SHELBY LIMITED COMPANY - ORIGINAL 15 INSTRUCTIONS")
+    print(f"STARTING TOMMY {BUSINESS['VERSION']} {BUSINESS['creator']} Owner {BUSINESS['owner']}")
     app.run(host="0.0.0.0", port=5000, debug=False)
